@@ -1,0 +1,90 @@
+import cv2
+import numpy as np
+import os
+
+recognizer = cv2.face.LBPHFaceRecognizer_create()
+confidence_threshold = 80
+
+# Load the face cascade classifier
+cascadePath = "/home/pi/haarcascade_frontalface_default.xml"
+faceCascade = cv2.CascadeClassifier(cascadePath)
+font = cv2.FONT_HERSHEY_SIMPLEX
+names = ['등록되지 않은 사용자 입니다.', '김진호님', '이현욱님']
+
+cam = cv2.VideoCapture(0)
+cam.set(3, 640)
+cam.set(4, 480)
+
+minW = 0.1 * cam.get(3)
+minH = 0.1 * cam.get(4)
+
+while True:
+    ret, img = cam.read()
+    img = cv2.flip(img, -1)
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+    recognized = False
+
+    # Hyunwook Lee's face recognition
+    if os.path.exists('/home/pi/Desktop/trainer/hyunuk.yml'):
+        recognizer.read('/home/pi/Desktop/trainer/hyunuk.yml')
+        hyunuk_id = 2
+
+        faces = faceCascade.detectMultiScale(
+            gray,
+            scaleFactor=2.9,
+            minNeighbors=5,
+            minSize=(int(minW), int(minH))
+        )
+
+        for (x, y, w, h) in faces:
+            cv2.rectangle(img, (x, y), (x + w, y + h), (0, 255, 0), 2)
+            id, confidence = recognizer.predict(gray[y:y + h, x:x + w])
+
+            if confidence < confidence_threshold:
+                if id == hyunuk_id:
+                    print("Hello Hyunwook!")
+                    recognized = True
+                    break
+
+    # Jinho Kim's face recognition
+    if os.path.exists('/home/pi/Desktop/trainer/jinho.yml') and not recognized:
+        recognizer.read('/home/pi/Desktop/trainer/jinho.yml')
+        jinho_id = 1
+
+        faces = faceCascade.detectMultiScale(
+            gray,
+            scaleFactor=2.9,
+            minNeighbors=5,
+            minSize=(int(minW), int(minH))
+        )
+
+        for (x, y, w, h) in faces:
+            cv2.rectangle(img, (x, y), (x + w, y + h), (0, 255, 0), 2)
+            id, confidence = recognizer.predict(gray[y:y + h, x:x + w])
+
+            if confidence < confidence_threshold:
+                if id == jinho_id:
+                    print("Hello Jinho!")
+                    recognized = True
+                    break
+
+    if recognized:
+        cam.release()
+        cv2.destroyAllWindows()
+        # Execute the corresponding code based on recognition
+        if id == hyunuk_id:
+            exec(open('final.py', encoding='utf-8').read())
+        elif id == jinho_id:
+            exec(open('final1.py', encoding='utf-8').read())
+        break
+
+    print("인식되지 않은 사용자입니다.")
+    cv2.imshow('camera', img)
+    k = cv2.waitKey(10) & 0xff
+    if k == 27:
+        break
+
+print("\n [INFO] 종료 중입니다...")
+cam.release()
+cv2.destroyAllWindows()
